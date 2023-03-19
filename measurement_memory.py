@@ -3,52 +3,52 @@ import pennylane as qml
 from pennylane import numpy as pnp
 
 ## Evaluate H
-def evaluate_eigenstate_MM(sample, H, memory, memory_states=10000):
+def evaluate_eigenstate_MM(sample, G, memory, memory_states=10000):
     total = 0
-    H_val = 0
-    coeffs = H.coeffs
+    G_val = 0
+    coeffs = G.coeffs
     for k,v in sample.items():
         try:
-            H_val += memory[k]*v
+            G_val += memory[k]*v
             
         except:
             eigvals = [eigenvalue(c) for c in k]
             
-            kHk = 0
-            for i,op in enumerate(H.ops):
+            kGk = 0
+            for i,op in enumerate(G.ops):
                 if op.name == 'Identity':
-                    kHk += coeffs[i]
+                    kGk += coeffs[i]
                 else: 
                     ws = op.wires.tolist()
                     op_val = 1
                     for w in ws: 
                         op_val *= eigvals[w]
-                    kHk += coeffs[i]*op_val
-            H_val += kHk*v
-            memory[k] = kHk
+                    kGk += coeffs[i]*op_val
+            memory[k] = kGk
+            G_val += kGk*v
                     
         total += v
-    return H_val/total
+    return G_val/total
 
-def evaluate_eigenstate(sample, H):
+def evaluate_eigenstate(sample, G):
     total = 0
-    H_val = 0
-    coeffs = H.coeffs
+    G_val = 0
+    coeffs = G.coeffs
     for k,v in sample.items():
         eigvals = [eigenvalue(c) for c in k]
-        kHk = 0
-        for i,op in enumerate(H.ops):
+        kGk = 0
+        for i,op in enumerate(G.ops):
             if op.name == 'Identity':
-                kHk += coeffs[i]
+                kGk += coeffs[i]
             else:
                 ws = op.wires.tolist()
                 op_val = 1
                 for w in ws:
                     op_val *= eigvals[w]
-                kHk += coeffs[i]*op_val
-        H_val += kHk*v
+                kGk += coeffs[i]*op_val
+        G_val += kGk*v
         total += v
-    return H_val/total
+    return G_val/total
 
 def eigenvalue(state:str):
     return int(1-2*int(state))
