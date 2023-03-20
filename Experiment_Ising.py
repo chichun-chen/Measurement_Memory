@@ -6,13 +6,13 @@ from measurement_memory import evaluate_eigenstate, evaluate_eigenstate_MM, Grad
 
 
 def random_Ising_H(N):
-    coeffs = np.random.rand((N*(N-1)//2 + N))
-    obs = [qml.PauliZ(i)@qml.PauliZ(j) for i in range(N) for j in range(i, N)]
+    coeffs = np.random.rand((N*(N-1)//2))
+    obs = [qml.PauliZ(i)@qml.PauliZ(j) for i in range(N) for j in range(i+1, N)]
     H = qml.Hamiltonian(coeffs, obs, grouping_type='qwc')
     return H
 
-def ansatz(params, depth=1):
-    qubits = len(params)//2
+p = 1
+def ansatz(params, qubits, depth=p):
     for q in range(qubits):
             qml.RY(params[q], wires=q)
     for d in range(1,depth+1):
@@ -41,7 +41,7 @@ if __name__ == '__main__':
     if  "-MM" in argList:
         is_MM = True
     # The maximum problem size
-    N_max = 4
+    N_max = 16
 
     problem_sizes = range(2, N_max+1, 2)
     max_itr = 100
@@ -54,10 +54,10 @@ if __name__ == '__main__':
 
         @qml.qnode(dev)
         def sample_circuit(params):
-            ansatz(params)
+            ansatz(params, N)
             return qml.counts()
 
-        init_params = np.random.rand(2*N)
+        init_params = np.random.rand((p+1)*N)
         params = init_params
         if is_MM :
             start = time.process_time()
