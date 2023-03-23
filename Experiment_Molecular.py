@@ -75,9 +75,12 @@ if __name__ == '__main__':
     is_MM = False
     if  "-MM" in argList:
         is_MM = True
+        argList.remove("-MM")
+    # Number of experiment
+    num_exp = argList[0]    
 
-    moleculars = ["H2", "LiH", "BeH2"]
-    qubits = [2, 4, 6]
+    moleculars = ["H2", "LiH", "BeH2", "H2O", "O2"]
+    qubits = [2, 4, 6, 8, 12]
     max_itr = 300
     gradient_method = 'parameter_shift'
 
@@ -116,7 +119,7 @@ if __name__ == '__main__':
         time_used.append(np.round(end-start, 3))
 
     if is_MM:
-        path = "Molecular_MM.txt"
+        path = "Molecular_MM{}.txt".format(num_exp)
     else:
-        path = "Molecular_normal.txt"
+        path = "Molecular_normal{}.txt".format(num_exp)
     write_results(path, moleculars, qubits, time_used)

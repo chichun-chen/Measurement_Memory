@@ -40,11 +40,14 @@ if __name__ == '__main__':
     is_MM = False
     if  "-MM" in argList:
         is_MM = True
+        argList.remove("-MM")
+    # Number of experiment
+    num_exp = argList[0]
     # The maximum problem size
-    N_max = 16
+    N_max = 18
 
     problem_sizes = range(2, N_max+1, 2)
-    max_itr = 100
+    max_itr = 200
     gradient_method = 'parameter_shift'
 
     time_used = []
@@ -75,7 +78,7 @@ if __name__ == '__main__':
         time_used.append(np.round(end-start, 3))
 
     if is_MM:
-        path = "Ising_MM.txt"
+        path = "Ising_MM{}.txt".format(num_exp)
     else:
-        path = "Ising_normal.txt"
+        path = "Ising_normal{}.txt".format(num_exp)
     write_results(path, problem_sizes, time_used)
