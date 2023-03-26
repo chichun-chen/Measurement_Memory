@@ -81,7 +81,7 @@ if __name__ == '__main__':
 
     moleculars = ["H2", "LiH", "BeH2", "H2O", "O2"]
     qubits = [2, 4, 6, 8, 12]
-    max_itr = 300
+    max_itr = 200
     gradient_method = 'parameter_shift'
 
     time_used = []
