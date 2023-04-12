@@ -112,12 +112,13 @@ def str_to_Pauli(H:list):
             else:
                 if char_to_Pauli(c,i):
                     obs = obs @ char_to_Pauli(c,i)
+        if not obs: obs = qml.Identity(0)
         ops.append(obs)
     return ops
         
             
 
-## Calculate Gradient
+## Gradient Method
 def finite_difference(cost, x, delta=0.0001):
     grad = []
     for i in range(len(x)):

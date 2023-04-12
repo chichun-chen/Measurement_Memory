@@ -1,3 +1,7 @@
+# This code is created by Chi Chun Chen @ Physics division, NCTS, Taipei, Taiwan   
+# Execute the experiment by:                                                       
+# python Experiment_{Type}.py {-MM} {output file #}                                
+####################################################################################
 import os
 import sys
 import time
@@ -25,7 +29,7 @@ def read_Hamiltonian(mol:str):
                 if s[1][-2:] == '\n':
                     group_coeffs.append(float(s[1][:-2]))
                 else:
-                    group_coeffs.append(float(s[1])) 
+                    group_coeffs.append(float(s[1]))
     return Hg
 
 def check_big_groups(Hg:list, n:int):
@@ -62,6 +66,20 @@ def cost0(x):
     return E
 
 
+def read_initial_parameters():
+    try:
+        initial_params = []
+        with open("Mol_initial_parameters.txt", 'r') as f:
+            for line in f.readlines():
+                s = line.split(' ')
+                if s[-1] == '\n' : s = s[:-1]
+                for i,n in enumerate(s):
+                    s[i] = float(n)
+                initial_params.append(s)
+    except:
+        raise FileExistsError("Must generate initial parameters.")
+    return initial_params
+
 def write_results(path, mols, Ns, times):
     f = open(path, 'w')
     f.write("Mol N Time\n")
@@ -77,13 +95,15 @@ if __name__ == '__main__':
         is_MM = True
         argList.remove("-MM")
     # Number of experiment
-    num_exp = argList[0]    
+    num_exp = int(argList[0])   
 
-    moleculars = ["H2", "LiH", "BeH2", "H2O", "O2"]
-    qubits = [2, 4, 6, 8, 12]
+    moleculars = ["H2", "H4", "LiH", "H2O"]
+    qubits = [4, 8, 12, 14]
     max_itr = 200
     gradient_method = 'parameter_shift'
-
+    # Read initial parameters
+    init_params = read_initial_parameters()[num_exp-1]
+  
     time_used = []
     for i, mol in enumerate(moleculars):
         Hg = read_Hamiltonian(mol)
@@ -93,7 +113,7 @@ if __name__ == '__main__':
         # Get measurements for each group
         Measurement_list = get_measurement_list(Hg, N)
 
-        dev = qml.device("default.qubit", wires=N, shots=10000)
+        dev = qml.device("lightning.gpu", wires=N, shots=2000+N**4)
 
         @qml.qnode(dev)
         def sample_circuit(params, obs):
@@ -101,8 +121,8 @@ if __name__ == '__main__':
             measurement_rotation(obs)
             return qml.counts()
 
-        init_params = np.random.rand(3*(p+1)*N)
-        params = init_params
+
+        params = init_params[:3*(p+1)*N]
         if is_MM :
             start = time.process_time()
             M = [{} for _ in range(len(Hg))]

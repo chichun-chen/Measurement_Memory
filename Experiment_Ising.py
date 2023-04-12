@@ -27,6 +27,21 @@ def cost(x):
 def cost0(x):
     return evaluate_eigenstate(sample_circuit(x), H)
 
+
+def read_initial_parameters():
+    try:
+        initial_params = []
+        with open("Ising_initial_parameters.txt", 'r') as f:
+            for line in f.readlines():
+                s = line.split(' ')
+                if s[-1] == '\n' : s = s[:-1]
+                for i,n in enumerate(s):
+                    s[i] = float(n)
+                initial_params.append(s)
+    except:
+        raise FileExistsError("Must generate initial parameters.")
+    return initial_params
+
 def write_results(path, Ns, times):
     f = open(path, 'w')
     f.write("N Time\n")
@@ -42,26 +57,27 @@ if __name__ == '__main__':
         is_MM = True
         argList.remove("-MM")
     # Number of experiment
-    num_exp = argList[0]
+    num_exp = int(argList[0])
     # The maximum problem size
-    N_max = 18
+    N_max = 4
 
     problem_sizes = range(2, N_max+1, 2)
     max_itr = 200
     gradient_method = 'parameter_shift'
+    # Read initial parameters
+    init_params = read_initial_parameters()[num_exp-1]
 
     time_used = []
     for N in problem_sizes:
         H = random_Ising_H(N)
-        dev = qml.device("default.qubit", wires=N, shots=10000)
+        dev = qml.device("lightning.qubit", wires=N, shots=1000*N**2)
 
         @qml.qnode(dev)
         def sample_circuit(params):
             ansatz(params, N)
             return qml.counts()
 
-        init_params = np.random.rand((p+1)*N)
-        params = init_params
+        params = init_params[:(p+1)*N]
         if is_MM :
             start = time.process_time()
             M = {}
