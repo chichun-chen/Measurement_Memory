@@ -59,7 +59,7 @@ if __name__ == '__main__':
     # Number of experiment
     num_exp = int(argList[0])
     # The maximum problem size
-    N_max = 4
+    N_max = 20
 
     problem_sizes = range(2, N_max+1, 2)
     max_itr = 200

@@ -21,7 +21,7 @@ if __name__ == '__main__':
 
     if "-Ising" in argList:
         name = "Ising"
-        max_qubits = 18
+        max_qubits = 20
         p = 1
         r = 1
         num_exp = 20

@@ -97,8 +97,8 @@ if __name__ == '__main__':
     # Number of experiment
     num_exp = int(argList[0])   
 
-    moleculars = ["H2", "H4", "LiH", "H2O"]
-    qubits = [4, 8, 12, 14]
+    moleculars = ["H2", "H4"]#, "LiH"]#, "H2O"]
+    qubits = [4, 8]#, 12]#, 14]
     max_itr = 200
     gradient_method = 'parameter_shift'
     # Read initial parameters
@@ -113,7 +113,7 @@ if __name__ == '__main__':
         # Get measurements for each group
         Measurement_list = get_measurement_list(Hg, N)
 
-        dev = qml.device("lightning.gpu", wires=N, shots=2000+N**4)
+        dev = qml.device("lightning.qubit", wires=N, shots=2000+N**4)
 
         @qml.qnode(dev)
         def sample_circuit(params, obs):
@@ -139,7 +139,7 @@ if __name__ == '__main__':
         time_used.append(np.round(end-start, 3))
 
     if is_MM:
-        path = "Molecular_MM{}.txt".format(num_exp)
+        path = "Molecular_H4_MM{}.txt".format(num_exp)
     else:
-        path = "Molecular_normal{}.txt".format(num_exp)
+        path = "Molecular_H4_normal{}.txt".format(num_exp)
     write_results(path, moleculars, qubits, time_used)
