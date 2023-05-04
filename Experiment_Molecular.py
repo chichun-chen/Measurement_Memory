@@ -48,7 +48,7 @@ def ansatz(params, qubits,  depth=p):
             qml.CNOT(wires=[q,q+1])
         for q in range(qubits):
             qml.U3(params[3*(d*qubits+q)], params[3*(d*qubits+q)+1], params[3*(d*qubits+q)+2], wires=q)
-
+'''
 def cost(x):
     E = 0
     for i,h in enumerate(Hg):
@@ -57,6 +57,14 @@ def cost(x):
                                         h, memory=M[i], memory_states=5000)
         else:
             E += evaluate_eigenstate(sample_circuit(x, Measurement_list[i]), h)
+    return E
+'''
+
+def cost(x):
+    E = 0
+    for i,h in enumerate(Hg):
+        E += evaluate_eigenstate_MM(sample_circuit(x, Measurement_list[i]),\
+                                        h, memory=M[i], memory_states=5000)
     return E
 
 def cost0(x):
