@@ -147,7 +147,7 @@ if __name__ == '__main__':
         time_used.append(np.round(end-start, 3))
 
     if is_MM:
-        path = "Molecular_H4_MM{}.txt".format(num_exp)
+        path = "Molecular_H4_MM_all{}.txt".format(num_exp)
     else:
-        path = "Molecular_H4_normal{}.txt".format(num_exp)
+        path = "Molecular_H4_normal_all{}.txt".format(num_exp)
     write_results(path, moleculars, qubits, time_used)
