@@ -12,24 +12,31 @@ from measurement_memory import evaluate_eigenstate, evaluate_eigenstate_MM,\
 from measurement_memory import get_measurement_list, measurement_rotation
 
 
-def read_Hamiltonian(mol:str):
-    path = os.path.abspath(os.path.join("Hamiltonians", "{}_Hamiltonian.txt".format(mol)))
+def read_Hamiltonian(mol:str, grouping_type:str):
+    path = os.path.abspath(os.path.join("Hamiltonians", "{}_{}_Hamiltonian.txt".format(mol, grouping_type)))
     Hg = []
+    Groups = []
     with open(path) as f:
+        qubits, terms, groups = f.readline()[:-1].split(' ')
+        
         group_ops = []
         group_coeffs = []
+        T = 0
+        G = 0
         for line in f.readlines():
             s = line.split(' ')
             if s[0] == '\n' or s[0] == None:
-                Hg.append(qml.Hamiltonian(group_coeffs, str_to_Pauli(group_ops), grouping_type='qwc'))
+                Groups.append(group_ops)
+                Hg.append(qml.Hamiltonian(group_coeffs, str_to_Pauli(group_ops), grouping_type='commuting'))
                 group_ops = []
                 group_coeffs = []
+                G += 1
             else:
                 group_ops.append(s[0])
-                if s[1][-2:] == '\n':
-                    group_coeffs.append(float(s[1][:-2]))
-                else:
-                    group_coeffs.append(float(s[1]))
+                if s[1][-1] == '\n': s[1] = s[1][:-1]
+                group_coeffs.append(float(s[1]))
+                T += 1
+        assert T == int(terms) and G == int(groups), "Fail to read Hamiltonian correctly. Check if the last group end with '\n'."
     return Hg
 
 def check_big_groups(Hg:list, n:int):
@@ -88,11 +95,14 @@ def read_initial_parameters():
         raise FileExistsError("Must generate initial parameters.")
     return initial_params
 
-def write_results(path, mols, Ns, times):
-    f = open(path, 'w')
-    f.write("Mol N Time\n")
-    for i in range(len(Ns)):
-        f.write("{} {} {}\n".format(mols[i], Ns[i], times[i]))
+def write_results(path, mol, N, time, overwrite=True):
+    if overwrite:
+        f = open(path, 'w') 
+        f.write("Mol N Time\n")
+    else:
+        f = open(path, 'a')
+
+    f.write("{} {} {}\n".format(mol, N, time))
     f.close()
 
 if __name__ == '__main__':
@@ -105,23 +115,22 @@ if __name__ == '__main__':
     # Number of experiment
     num_exp = int(argList[0])   
 
-    moleculars = ["H2", "H4"]#, "LiH"]#, "H2O"]
-    qubits = [4, 8]#, 12]#, 14]
-    max_itr = 200
+    moleculars = ["H2", "H4", "LiH", "H2O"]
+    qubits = [4, 8, 12, 14]
+    max_itr = 100
     gradient_method = 'parameter_shift'
     # Read initial parameters
     init_params = read_initial_parameters()[num_exp-1]
   
-    time_used = []
     for i, mol in enumerate(moleculars):
-        Hg = read_Hamiltonian(mol)
+        Hg = read_Hamiltonian(mol,'QWC')
         N = qubits[i]
         # Get groups with # of ops >= N
         big_groups = check_big_groups(Hg, N)
         # Get measurements for each group
         Measurement_list = get_measurement_list(Hg, N)
 
-        dev = qml.device("lightning.qubit", wires=N, shots=1000*N)
+        dev = qml.device("lightning.qubit", wires=N, shots=100*N)
 
         @qml.qnode(dev)
         def sample_circuit(params, obs):
@@ -144,10 +153,12 @@ if __name__ == '__main__':
                 params = GradientDescent(cost0, params, gradient_method, learning_rate=0.05)
                 obj_value = cost0(params)   
             end = time.process_time()    
-        time_used.append(np.round(end-start, 3))
+        time_used = np.round(end-start, 3)
 
-    if is_MM:
-        path = "Molecular_H4_MM_all{}.txt".format(num_exp)
-    else:
-        path = "Molecular_H4_normal_all{}.txt".format(num_exp)
-    write_results(path, moleculars, qubits, time_used)
+        if is_MM:
+            path = "Molecular_MM{}.txt".format(num_exp)
+        else:
+            path = "Molecular_normal{}.txt".format(num_exp)
+        overwrite = False
+        if i == 0 : overwrite = True
+        write_results(path, mol, N, time_used, overwrite)
