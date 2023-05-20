@@ -12,8 +12,7 @@ def evaluate_eigenstate_MM(sample, G, memory, memory_states=10000):
             G_val += memory[k]*v
             
         except:
-            eigvals = [eigenvalue(c) for c in k]
-            
+            eigvals = [eigenvalue(c) for c in k]            
             kGk = 0
             for i,op in enumerate(G.ops):
                 if op.name == 'Identity':
