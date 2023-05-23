@@ -133,7 +133,7 @@ if __name__ == '__main__':
     ##############
     moleculars = ["H2", "H4", "LiH", "H2O"]
     qubits = [4, 8, 12, 14]
-    grouping_type = 'GC'   # 'GC': general commuting, 'QWC': qubit-wise commuting
+    grouping_type = 'QWC'   # 'GC': general commuting, 'QWC': qubit-wise commuting
     max_itr = 100
     gradient_method = 'parameter_shift'
     # Read initial parameters
