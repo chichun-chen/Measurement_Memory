@@ -3,48 +3,50 @@ import pennylane as qml
 from pennylane import numpy as pnp
 
 ## Evaluate H
-def evaluate_eigenstate_MM(sample, G, memory, memory_states=10000):
+def evaluate_eigenstate_MM(sample, Hg, memory, memory_states=10000):
+    # Input: circuit sample result, 
+    #        Hg:list of tuple ([Pauli operators], [coefficients]), 
+    #        measurement memory
+    # Output : Expactation value <G> evaluated w.r.t. the sample
     total = 0
     G_val = 0
-    coeffs = G.coeffs
+    ops = Hg[0]
+    coeffs = Hg[1]
     for k,v in sample.items():
         try:
             G_val += memory[k]*v
-            
         except:
             eigvals = [eigenvalue(c) for c in k]            
             kGk = 0
-            for i,op in enumerate(G.ops):
-                if op.name == 'Identity':
-                    kGk += coeffs[i]
-                else: 
-                    ws = op.wires.tolist()
-                    op_val = 1
-                    for w in ws: 
-                        op_val *= eigvals[w]
-                    kGk += coeffs[i]*op_val
+            for i,op in enumerate(ops):
+                op_val = 1
+                for j, pw in enumerate(op):
+                    if not pw == 'I':
+                        op_val *= eigvals[j]
+                kGk += coeffs[i]*op_val 
             memory[k] = kGk
             G_val += kGk*v
                     
         total += v
     return G_val/total
 
-def evaluate_eigenstate(sample, G):
+def evaluate_eigenstate(sample, Hg):
+    # Input: circuit sample result,
+    #        Hg:list of tuple ([Pauli operators], [coefficients])
+    # Output : Expactation value <G> evaluated w.r.t. the sample
     total = 0
     G_val = 0
-    coeffs = G.coeffs
+    ops = Hg[0]
+    coeffs = Hg[1]
     for k,v in sample.items():
         eigvals = [eigenvalue(c) for c in k]
         kGk = 0
-        for i,op in enumerate(G.ops):
-            if op.name == 'Identity':
-                kGk += coeffs[i]
-            else:
-                ws = op.wires.tolist()
-                op_val = 1
-                for w in ws:
-                    op_val *= eigvals[w]
-                kGk += coeffs[i]*op_val
+        for i,op in enumerate(ops):
+            op_val = 1
+            for j, pw in enumerate(op):
+                if not pw == 'I':
+                    op_val *= eigvals[j]
+            kGk += coeffs[i]*op_val
         G_val += kGk*v
         total += v
     return G_val/total
@@ -62,6 +64,22 @@ def group_H(H):
         Hg.append(qml.Hamiltonian(coeffs, obs, grouping_type='qwc'))
     return Hg
 
+def single_qubit_basis_rotation(M:list):
+    # Input : Measurement Pauli basis
+    # Do :  Single qubit rotation to measurement basis
+    for i,m in enumerate(M):
+        if m == 'X':
+            qml.Hadamard(i)
+        elif m == 'Y':
+            qml.adjoint(qml.S(i))
+            qml.Hadamard(i)
+        elif m == 'Z' or m == 'I':
+            pass
+        else:
+            raise Exception("Did not receive single qubit Pauli basis.") 
+
+
+'''
 def get_measurement_list(Hg:list, qubits):
     Measurement_list = []
     for g in Hg:
@@ -81,14 +99,25 @@ def get_measurement_list(Hg:list, qubits):
         Measurement_list.append(basis)
     return Measurement_list
 
-def measurement_rotation(M):
-    for i,m in enumerate(M):
-        if m == 'PauliX':
-            qml.Hadamard(i)
-        elif m == 'PauliY':
-            qml.adjoint(qml.S(i))
-            qml.Hadamard(i)
+#def measurement_rotation(M):
+#    for i,m in enumerate(M):
+#        if m == 'X':
+#            qml.Hadamard(i)
+#        elif m == 'Y':
+#            qml.adjoint(qml.S(i))
+#            qml.Hadamard(i)
 
+def basis_transform_circuit(T, Q):
+    # Input: Original lagrangian basis and the new single qubit basis
+    # Do : Rotate to single measurement basis
+    assert len(T) == len(Q), "Two basis has differnt dimensions."
+    q = len(T[0])
+
+    for i in range(len(T)):
+        qml.PauliRot(-np.pi/4, Q[i], range(q))
+        qml.PauliRot(-np.pi/4, T[i], range(q))
+        qml.PauliRot(-np.pi/4, Q[i], range(q))
+'''
 
 # Converter
 def char_to_Pauli(c:str, i:int):

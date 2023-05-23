@@ -1,40 +1,42 @@
 import numpy as np
 
-def make_circuit(qc, T, Q):
-    # Input: A quanutm circuit Old Lagrangian basis T and new single qubit basis Q
-    # Output: The circuit ready to measure in computational basis
-    assert len(T) == len(Q), "Two basis has differnt dimensions."
 
-    for i in range(len(T)):
-        U.append((Q[i], -np.pi/4))
-        U.append((T[i], -np.pi/4))
-        U.append((Q[i], -np.pi/4))
-    return U
+def basis_transformation(H:list):
+    Hg = []
+    basis = []
+    for i in range(len(H)):
+        Hg_temp, T, Q = get_measurement_basis(H[i])
+        Hg.append(Hg_temp)
+        basis.append((T, Q))
+    return Hg, basis
 
 def get_measurement_basis(H:list):
     # Input : Mutually commuting Hamiltonian group H
     # Output : QWC_Hamiltonian H'=U*HU & corresponding U
-    if not is_commuting(H):
+    G = H[0] 
+    old_coeffs = H[1]
+    if not is_commuting(G):
         raise Exception('Hamiltonian given are not mutually commuting.')
-    if is_QWC(H):
-        result = [H, is_QWC(H, return_basis=True)]
-        return result
+    if is_QWC(G):
+        return H, None, is_QWC(G, return_basis=True)
 
     # Encode to sympletic vector space over GF(2) 
     B = []
-    for P in H:
+    for P in G:
         B.append(sympletic_subspace_encoding(P))
-    H_b = np.array(B)
+    G_b = np.array(B)
     # Compute orthogonal basis (Q & T)
-    lagrangian_basis = get_lagrangian_subspace(H_b)
+    lagrangian_basis = get_lagrangian_subspace(G_b)
     new_basis = get_single_qubit_basis(lagrangian_basis)
     T = [decode_to_Pauli(s) for s in lagrangian_basis ]
     Q = [decode_to_Pauli(s) for s in new_basis ]
 
-    new_pauli_vectors, new_coeffs = basis_transform(H_b, lagrangian_basis, new_basis)
-    new_H = [decode_to_Pauli(s) for s in new_pauli_vectors]
+    new_pauli_vectors, phase = basis_transform(G_b, lagrangian_basis, new_basis)
+    new_coeffs = [old_coeffs[i]*phase[i] for i in range(len(old_coeffs))]
+    new_G = [decode_to_Pauli(s) for s in new_pauli_vectors]
 
-    return new_H, new_coeffs, T, Q
+    new_H = (new_G, new_coeffs)
+    return new_H, T, Q
 
 
 def is_commuting(P:list):
@@ -110,12 +112,6 @@ def sympletic_subspace_encoding(Pauli:str):
             N2.append(0)
     return np.array(N1+N2)
 
-#def subspace_inner_product(a, b):
-#    N = len(a)//2
-#    A = np.array([[0,1],[1,0]])
-#    B = np.identity(N)
-#    J = np.kron(A,B)
-#    return np.dot(a, np.dot(J,b)) % 2
 
 def decode_to_Pauli(v):
     N = len(v)//2
@@ -324,16 +320,16 @@ def gen_single_qubit_term(dim, qub, term):
 
 
 
-def basis_transform(Hg, old, new):
+def basis_transform(G, old, new):
     '''
     Transform a group of commuting Hamiltonian from old to new binary basis.
 
     Return: Pauli string in the new binary basis.
     '''
-    n_qubit = len(Hg[0])//2
+    n_qubit = len(G[0])//2
     new_pauli_vectors = []
-    new_coeffs = []
-    for P in Hg:
+    phases = []
+    for P in G:
         old_basis_coeff = binary_solve(old, P)
         original_pauli_vec = np.zeros(n_qubit * 2)
         new_pauli_vec = np.zeros(n_qubit * 2)
@@ -344,8 +340,8 @@ def basis_transform(Hg, old, new):
                 original_pauli_vec = (original_pauli_vec + old[i]) % 2
                 new_pauli_vec = (new_pauli_vec + new[i]) % 2
         new_pauli_vectors.append(new_pauli_vec)
-        new_coeffs.append(1.0/phase)
-    return new_pauli_vectors, new_coeffs
+        phases.append(1.0/phase)
+    return new_pauli_vectors, phases
 
 def binary_solve(basis, target):
     '''
