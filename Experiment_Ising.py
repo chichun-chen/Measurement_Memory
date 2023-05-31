@@ -40,9 +40,9 @@ def read_initial_parameters():
 
 def get_file_name(is_MM:bool):
     if is_MM :
-        return "cn10_Ising_MM{}.txt".format(num_exp)
+        return "cn0_Ising_MM{}.txt".format(num_exp)
     else:
-        return "cn10_Ising_normal{}.txt".format(num_exp)
+        return "cn0_Ising_normal{}.txt".format(num_exp)
 
 def write_results(path, N, time, overwrite=True):
     if overwrite:
@@ -67,7 +67,7 @@ if __name__ == '__main__':
     # Parameters #
     ##############
     N_max = 20
-    max_itr = 200
+    max_itr = 100
     gradient_method = 'parameter_shift'
 
     # Read initial parameters
