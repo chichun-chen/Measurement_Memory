@@ -3,13 +3,7 @@ import time
 import pennylane as qml
 from pennylane import numpy as np
 from measurement_memory import evaluate_eigenstate, evaluate_eigenstate_MM, GradientDescent
-
-
-def random_Ising_H(N):
-    coeffs = np.random.rand((N*(N-1)//2))
-    obs = [qml.PauliZ(i)@qml.PauliZ(j) for i in range(N) for j in range(i+1, N)]
-    H = qml.Hamiltonian(coeffs, obs, grouping_type='qwc')
-    return H
+from Hamiltonians.utils import read_Hamiltonian
 
 p = 1
 def ansatz(params, qubits, depth=p):
@@ -21,11 +15,19 @@ def ansatz(params, qubits, depth=p):
         for q in range(qubits):
             qml.RY(params[d*qubits+q], wires=q)
 
-def cost(x):
-    return evaluate_eigenstate_MM(sample_circuit(x), H, memory=M, memory_states=999999)
+def cost_MM(x):
+    # cost function for measurement memory
+    E = 0
+    for g in Hg:
+        E += evaluate_eigenstate_MM(sample_circuit(x), g, memory=M)
+    return E
 
 def cost0(x):
-    return evaluate_eigenstate(sample_circuit(x), H)
+    # cost function for normal evaluation
+    E = 0
+    for g in Hg:
+        E += evaluate_eigenstate(sample_circuit(x), g)
+    return E
 
 
 def read_initial_parameters():
@@ -42,12 +44,21 @@ def read_initial_parameters():
         raise FileExistsError("Must generate initial parameters.")
     return initial_params
 
-def write_results(path, Ns, times):
-    f = open(path, 'w')
-    f.write("N Time\n")
-    for i in range(len(Ns)):
-        f.write("{} {}\n".format(Ns[i], times[i]))
+def get_file_name(is_MM:bool):
+    if is_MM :
+        return "cn10_Ising_MM{}.txt".format(num_exp)
+    else:
+        return "cn10_Ising_normal{}.txt".format(num_exp)
+
+def write_results(path, N, time, overwrite=True):
+    if overwrite:
+        f = open(path, 'w') 
+        f.write("N Time\n")
+    else:
+        f = open(path, 'a')
+    f.write("{} {}\n".format(N, time))
     f.close()
+
 
 if __name__ == '__main__':
     argList = sys.argv[1:]
@@ -58,19 +69,20 @@ if __name__ == '__main__':
         argList.remove("-MM")
     # Number of experiment
     num_exp = int(argList[0])
-    # The maximum problem size
+    ##############
+    # Parameters #
+    ##############
     N_max = 20
-
-    problem_sizes = range(2, N_max+1, 2)
-    max_itr = 200
+    max_itr = 100
     gradient_method = 'parameter_shift'
+
     # Read initial parameters
     init_params = read_initial_parameters()[num_exp-1]
+    problem_sizes = range(2, N_max+1, 2)
 
-    time_used = []
     for N in problem_sizes:
-        H = random_Ising_H(N)
-        dev = qml.device("lightning.qubit", wires=N, shots=1000*N**2)
+        Hg = read_Hamiltonian("Ising", N=N)
+        dev = qml.device("lightning.qubit", wires=N, shots=200*N**2)
 
         @qml.qnode(dev)
         def sample_circuit(params):
@@ -82,8 +94,8 @@ if __name__ == '__main__':
             start = time.process_time()
             M = {}
             for itr in range(max_itr):
-                params = GradientDescent(cost, params, gradient_method, learning_rate=0.05)
-                obj_value = cost(params)
+                params = GradientDescent(cost_MM, params, gradient_method, learning_rate=0.05)
+                obj_value = cost_MM(params)
             end = time.process_time()
         else:
             start = time.process_time()
@@ -91,10 +103,10 @@ if __name__ == '__main__':
                 params = GradientDescent(cost0, params, gradient_method, learning_rate=0.05)
                 obj_value = cost0(params)   
             end = time.process_time()    
-        time_used.append(np.round(end-start, 3))
 
-    if is_MM:
-        path = "Ising_MM{}.txt".format(num_exp)
-    else:
-        path = "Ising_normal{}.txt".format(num_exp)
-    write_results(path, problem_sizes, time_used)
+        time_used = np.round(end-start, 3)
+
+        path = get_file_name(is_MM)
+        overwrite = False
+        if N == problem_sizes[0] : overwrite = True
+        write_results(path, N, time_used, overwrite)

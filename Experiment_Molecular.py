@@ -7,45 +7,11 @@ import sys
 import time
 import pennylane as qml
 from pennylane import numpy as np
+from Hamiltonians.utils import read_Hamiltonian
 from measurement_memory import *
 from grouping import *
 
 
-def read_Hamiltonian(mol:str, grouping_type:str):
-    path = os.path.abspath(os.path.join("Hamiltonians", "{}_{}_Hamiltonian.txt".format(mol, grouping_type)))
-    Hg = []
-    #Groups = []
-    with open(path) as f:
-        qubits, terms, groups = f.readline()[:-1].split(' ')
-        
-        group_ops = []
-        group_coeffs = []
-        T = 0
-        G = 0
-        for line in f.readlines():
-            s = line.split(' ')
-            if s[0] == '\n' or s[0] == None:
-                Hg.append((group_ops, group_coeffs))
-                #Hg.append(qml.Hamiltonian(group_coeffs, str_to_Pauli(group_ops), grouping_type='commuting'))
-                group_ops = []
-                group_coeffs = []
-                G += 1
-            else:
-                group_ops.append(s[0])
-                if s[1][-1] == '\n': s[1] = s[1][:-1]
-                group_coeffs.append(float(s[1]))
-                T += 1
-        assert T == int(terms) and G == int(groups),\
-               "Fail to read Hamiltonian correctly. Check if the last group end with '\n'."
-    return Hg
-
-
-#def check_big_groups(Hg:list, n:int):
-#    big_groups = []
-#    for i,h in enumerate(Hg):
-#        if len(h.ops) >= n:
-#            big_groups.append(i)
-#    return big_groups
 
 p = 1
 def ansatz(params, qubits,  depth=p):
@@ -72,20 +38,35 @@ def measurement_rotation(T, Q):
             qml.PauliRot(-np.pi/2, Q[i], range(q))
         single_qubit_basis_rotation(is_QWC(Q, return_basis=True))
 
+def single_qubit_basis_rotation(M:list):
+    # Input : Measurement Pauli basis
+    # Do :  Single qubit rotation to measurement basis
+    for i,m in enumerate(M):
+        if m == 'X':
+            qml.Hadamard(i)
+        elif m == 'Y':
+            qml.adjoint(qml.S(i))
+            qml.Hadamard(i)
+        elif m == 'Z' or m == 'I':
+            pass
+        else:
+            raise Exception("Did not receive single qubit Pauli basis.")
 
-def cost(x):
+def cost_MM(x):
+    # cost function for measurement memory
     E = 0
-    for i,h in enumerate(Hg):
+    for i,g in enumerate(Hg):
         T, Q = basis[i]
         E += evaluate_eigenstate_MM(sample_circuit(x, T, Q),\
-                                    h, memory=M[i], memory_states=5000)
+                                    g, memory=M[i])
     return E
 
 def cost0(x):
+    # cost function for normal evaluation
     E = 0
-    for i,h in enumerate(Hg):
+    for i,g in enumerate(Hg):
         T, Q = basis[i]
-        E += evaluate_eigenstate(sample_circuit(x, T, Q), h)
+        E += evaluate_eigenstate(sample_circuit(x, T, Q), g)
     return E
 
 
@@ -105,9 +86,9 @@ def read_initial_parameters():
 
 def get_file_name(is_MM, grouping_type):
     if is_MM :
-        return "cn10_Molecular_{}_MM{}.txt".format(grouping_type,num_exp)
+        return "Molecular_{}_MM{}.txt".format(grouping_type,num_exp)
     else:
-        return "cn10_Molecular_{}_normal{}.txt".format(grouping_type,num_exp)
+        return "Molecular_{}_normal{}.txt".format(grouping_type,num_exp)
 
 def write_results(path, mol, N, time, overwrite=True):
     if overwrite:
@@ -136,12 +117,12 @@ if __name__ == '__main__':
     grouping_type = 'GC'   # 'GC': general commuting, 'QWC': qubit-wise commuting
     max_itr = 100
     gradient_method = 'parameter_shift'
-    # Read initial parameters
-    init_params = read_initial_parameters()[num_exp-1]
-    ##############################################################################  
+   
+     # Read initial parameters
+    init_params = read_initial_parameters()[num_exp-1]  
 
     for i, mol in enumerate(moleculars):
-        H = read_Hamiltonian(mol, grouping_type)
+        H = read_Hamiltonian("Molecular", mol=mol, grouping_type=grouping_type)
         N = qubits[i]
         # Get groups with # of ops >= N
         ## big_groups = check_big_groups(Hg, N)
@@ -161,8 +142,8 @@ if __name__ == '__main__':
             start = time.process_time()
             M = [{} for _ in range(len(Hg))]
             for itr in range(max_itr):
-                params = GradientDescent(cost, params, gradient_method, learning_rate=0.05)
-                obj_value = cost(params)
+                params = GradientDescent(cost_MM, params, gradient_method, learning_rate=0.05)
+                obj_value = cost_MM(params)
                 #print(obj_value)
             end = time.process_time()
         else:
