@@ -17,17 +17,11 @@ def ansatz(params, qubits, depth=p):
 
 def cost_MM(x):
     # cost function for measurement memory
-    E = 0
-    for g in Hg:
-        E += evaluate_eigenstate_MM(sample_circuit(x), g, memory=M)
-    return E
+    return evaluate_eigenstate_MM(sample_circuit(x), Hg[0], memory=M)
 
 def cost0(x):
     # cost function for normal evaluation
-    E = 0
-    for g in Hg:
-        E += evaluate_eigenstate(sample_circuit(x), g)
-    return E
+    return evaluate_eigenstate(sample_circuit(x), Hg[0])
 
 
 def read_initial_parameters():
@@ -73,7 +67,7 @@ if __name__ == '__main__':
     # Parameters #
     ##############
     N_max = 20
-    max_itr = 100
+    max_itr = 200
     gradient_method = 'parameter_shift'
 
     # Read initial parameters
@@ -82,7 +76,7 @@ if __name__ == '__main__':
 
     for N in problem_sizes:
         Hg = read_Hamiltonian("Ising", N=N)
-        dev = qml.device("lightning.qubit", wires=N, shots=200*N**2)
+        dev = qml.device("lightning.qubit", wires=N, shots=1000*N**2)
 
         @qml.qnode(dev)
         def sample_circuit(params):
@@ -96,12 +90,14 @@ if __name__ == '__main__':
             for itr in range(max_itr):
                 params = GradientDescent(cost_MM, params, gradient_method, learning_rate=0.05)
                 obj_value = cost_MM(params)
+                print(obj_value)
             end = time.process_time()
         else:
             start = time.process_time()
             for itr in range(max_itr):
                 params = GradientDescent(cost0, params, gradient_method, learning_rate=0.05)
-                obj_value = cost0(params)   
+                obj_value = cost0(params)
+                print(obj_value)   
             end = time.process_time()    
 
         time_used = np.round(end-start, 3)
