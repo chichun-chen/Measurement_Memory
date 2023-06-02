@@ -40,9 +40,9 @@ def read_initial_parameters():
 
 def get_file_name(is_MM:bool):
     if is_MM :
-        return "cn0_Ising_MM{}.txt".format(num_exp)
+        return "cn9_Ising_MM{}.txt".format(num_exp)
     else:
-        return "cn0_Ising_normal{}.txt".format(num_exp)
+        return "cn9_Ising_normal{}.txt".format(num_exp)
 
 def write_results(path, N, time, overwrite=True):
     if overwrite:
@@ -90,14 +90,12 @@ if __name__ == '__main__':
             for itr in range(max_itr):
                 params = GradientDescent(cost_MM, params, gradient_method, learning_rate=0.05)
                 obj_value = cost_MM(params)
-                print(obj_value)
             end = time.process_time()
         else:
             start = time.process_time()
             for itr in range(max_itr):
                 params = GradientDescent(cost0, params, gradient_method, learning_rate=0.05)
                 obj_value = cost0(params)
-                print(obj_value)   
             end = time.process_time()    
 
         time_used = np.round(end-start, 3)
