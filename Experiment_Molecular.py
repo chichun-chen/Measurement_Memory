@@ -86,9 +86,9 @@ def read_initial_parameters():
 
 def get_file_name(is_MM, grouping_type):
     if is_MM :
-        return "Molecular_{}_MM{}.txt".format(grouping_type,num_exp)
+        return "cn0_Molecular_{}_MM{}.txt".format(grouping_type,num_exp)
     else:
-        return "Molecular_{}_normal{}.txt".format(grouping_type,num_exp)
+        return "cn0_Molecular_{}_normal{}.txt".format(grouping_type,num_exp)
 
 def write_results(path, mol, N, time, overwrite=True):
     if overwrite:
