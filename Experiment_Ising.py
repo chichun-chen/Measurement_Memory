@@ -40,9 +40,9 @@ def read_initial_parameters():
 
 def get_file_name(is_MM:bool):
     if is_MM :
-        return "cn0_itr5_Ising_MM{}.txt".format(num_exp)
+        return "cn0_linear_Ising_MM{}.txt".format(num_exp)
     else:
-        return "cn0_itr5_Ising_normal{}.txt".format(num_exp)
+        return "cn0_linear_Ising_normal{}.txt".format(num_exp)
 
 def write_results(path, N, time, overwrite=True):
     if overwrite:
@@ -76,7 +76,7 @@ if __name__ == '__main__':
 
     for N in problem_sizes:
         Hg = read_Hamiltonian("Ising", N=N)
-        dev = qml.device("lightning.qubit", wires=N, shots=200*N**2)
+        dev = qml.device("lightning.qubit", wires=N, shots=1000*N)
 
         @qml.qnode(dev)
         def sample_circuit(params):
