@@ -3,7 +3,7 @@ import time
 import pennylane as qml
 from pennylane import numpy as np
 from measurement_memory import evaluate_eigenstate, evaluate_eigenstate_MM, GradientDescent
-from Hamiltonians.utils import read_Hamiltonian
+from Hamiltonians.utils import read_Ising_Hamiltonian
 
 p = 1
 def ansatz(params, qubits, depth=p):
@@ -67,7 +67,7 @@ if __name__ == '__main__':
     # Parameters #
     ##############
     N_max = 20
-    max_itr = 500
+    max_itr = 200
     gradient_method = 'parameter_shift'
 
     # Read initial parameters
@@ -75,7 +75,7 @@ if __name__ == '__main__':
     problem_sizes = range(2, N_max+1, 2)
 
     for N in problem_sizes:
-        Hg = read_Hamiltonian("Ising", N=N)
+        Hg = read_Ising_Hamiltonian(N=N)
         dev = qml.device("lightning.qubit", wires=N, shots=1000*N)
 
         @qml.qnode(dev)

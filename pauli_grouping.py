@@ -18,7 +18,7 @@ def get_measurement_basis(H:list):
     if not is_commuting(G):
         raise Exception('Hamiltonian given are not mutually commuting.')
     if is_QWC(G):
-        return H, None, G
+        return H, None, is_QWC(G, return_basis=True)
 
     # Encode to sympletic vector space over GF(2) 
     B = []

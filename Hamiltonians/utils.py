@@ -1,76 +1,90 @@
 import os
 
-def read_Hamiltonian(Hamiltonian:str, N=None, mol=None, grouping_type=None):
+def read_Ising_Hamiltonian(N:int, directory="Hamiltonians"):
+    path = os.path.abspath(os.path.join(directory, "Ising_Hamiltonian_{}qubit.txt".format(N)))
     
-    if Hamiltonian.lower() == "ising":
-        if N == None: raise Exception("qubit number N is not defined.")
-        path = os.path.abspath(os.path.join("Hamiltonians", "Ising_Hamiltonian_{}qubit.txt".format(N)))
-        #path = os.path.abspath(os.path.join(".", "Ising_Hamiltonian_{}qubit.txt".format(N)))
-    elif Hamiltonian.lower() == "molecular":
-        if mol == None: raise Exception("molecule is not defined.")
-        if grouping_type == None: raise Exception("grouping_type is not defined (QWC or GC).")
-        path = os.path.abspath(os.path.join("Hamiltonians", "{}_{}_Hamiltonian.txt".format(mol, grouping_type)))
-        #path = os.path.abspath(os.path.join(".", "{}_{}_Hamiltonian.txt".format(mol, grouping_type)))
-    Hg = []
-    #Groups = []
-    with open(path) as f:
-        qubits, terms, groups = f.readline()[:-1].split(' ')
-        
-        group_ops = []
-        group_coeffs = []
-        T = 0
-        G = 0
-        for line in f.readlines():
-            s = line.split(' ')
-            if s[0] == '\n' or s[0] == None:
-                Hg.append((group_ops, group_coeffs))
-                #Hg.append(qml.Hamiltonian(group_coeffs, str_to_Pauli(group_ops), grouping_type='commuting'))
-                group_ops = []
-                group_coeffs = []
-                G += 1
-            else:
-                group_ops.append(s[0])
-                if s[1][-1] == '\n': s[1] = s[1][:-1]
-                group_coeffs.append(float(s[1]))
-                T += 1
-        assert T == int(terms) and G == int(groups),\
-               "Fail to read Hamiltonian correctly. Check if the last group end with '\n'."
-    return Hg
-
-
-def read_Hamiltonian0(Hamiltonian:str, N=None, mol=None, grouping_type=None):
-
-    if Hamiltonian.lower() == "ising":
-        if N == None: raise Exception("qubit number N is not defined.")
-        #path = os.path.abspath(os.path.join("Hamiltonians", "Ising_Hamiltonian_{}qubit.txt".format(N)))
-        path = os.path.abspath(os.path.join(".", "Ising_Hamiltonian_{}qubit.txt".format(N)))
-    elif Hamiltonian.lower() == "molecular":
-        if mol == None: raise Exception("molecule is not defined.")
-        if grouping_type == None: raise Exception("grouping_type is not defined (QWC or GC).")
-        #path = os.path.abspath(os.path.join("Hamiltonians", "{}_{}_Hamiltonian.txt".format(mol, grouping_type)))
-        path = os.path.abspath(os.path.join(".", "{}_{}_Hamiltonian.txt".format(mol, grouping_type)))
-    Hg = []
-    #Groups = []
+    H = []
+    group_ops = []
+    group_coeffs = []
     with open(path) as f:
         qubits, terms, groups = f.readline()[:-1].split(' ')
 
-        group_ops = []
-        group_coeffs = []
-        T = 0
-        G = 0
-        for line in f.readlines():
-            s = line.split(' ')
-            if s[0] == '\n' or s[0] == None:
-                Hg.append((group_ops, group_coeffs))
-                #Hg.append(qml.Hamiltonian(group_coeffs, str_to_Pauli(group_ops), grouping_type='commuting'))
-                group_ops = []
-                group_coeffs = []
-                G += 1
+        for _ in range(int(terms)):
+            s = f.readline()[:-1].split(' ')
+            group_ops.append(s[0])
+            group_coeffs.append(float(s[1]))
+        H.append((group_ops, group_coeffs))
+
+    return H
+
+
+def read_molecule_Hamiltonian(mol=None, grouping_type=None, directory="Hamiltonians"):
+    path = os.path.abspath(os.path.join(directory, "{}_{}_Hamiltonian.txt".format(mol,grouping_type.upper())))
+
+    def read_in(obj):
+        # obj = 'Pauli' : read Pauli operators
+        # obj = 'Givens' : read givens parameters
+        # obj = 'Phase' : read phase
+        obj = obj.lower()
+        s = f.readline()[:-1].split(' ')
+        if obj == 'pauli':
+            group_ops.append(s[0])
+            group_coeffs.append(float(s[1]))
+        elif obj == 'givens':
+            if float(s[0]) == 0 :
+                pass
             else:
-                group_ops.append(s[0])
-                if s[1][-1] == '\n': s[1] = s[1][:-1]
-                group_coeffs.append(float(s[1]))
-                T += 1
-        assert T == int(terms) and G == int(groups),\
-               "Fail to read Hamiltonian correctly. Check if the last group end with '\n'."
-    return Hg
+                group_givens.append((float(s[0]),
+                                     int(s[1]),
+                                     int(s[2])))
+        elif obj == 'phase':
+            group_phase.append(tuple(float(p) for p in s))
+
+    def pack_up(obj, group_ops, group_coeffs, group_givens, group_phase):
+        # Append a group to list
+        obj = obj.lower()
+        if obj == 'pauli':
+            H.append((group_ops, group_coeffs))
+            group_ops = []
+            group_coeffs = []
+        elif obj == 'givens':
+            Givens.append(group_givens)
+            group_givens = []
+        elif obj == 'phase':
+            Phase.append(group_phase)
+            group_phase = []
+        return group_ops, group_coeffs, group_givens, group_phase
+
+    H = []
+    Givens = []
+    Phase = []
+    group_ops = []
+    group_coeffs = []
+    group_givens = []
+    group_phase = []
+    if grouping_type.lower() == 'fg':
+        objs = ['Phase', 'Givens', 'Pauli']
+    else:
+        objs = ['Pauli']
+
+    with open(path) as f:
+        qubits, terms, groups = f.readline()[:-1].split(' ')
+
+        for _ in range(int(groups)):
+            for _ in range(len(objs)):
+               obj, items = f.readline()[:-1].split(' ')
+               for item in range(int(items)):
+                   read_in(obj)
+               group_ops, group_coeffs, group_givens, group_phase=\
+               pack_up(obj, group_ops, group_coeffs, group_givens, group_phase)
+            # Skip blank line
+            f.readline()
+
+        T = sum([len(H[i][0]) for i in range(len(H))])
+        assert T == int(terms) and len(H) == int(groups),\
+               "Fail to read Hamiltonian correctly. Check the file format."
+    if grouping_type.lower() == 'fg':
+        return H, Givens, Phase
+    else: 
+        return H
+
