@@ -70,7 +70,9 @@ def cost_MM(x):
     E = 0
     for i,hg in enumerate(Hg):
         T, Q = basis[i]
-        E += evaluate_eigenstate_MM(sample_circuit(x, T=T, Q=Q),\
+        G = Givens[i]
+        P = Phases[i]
+        E += evaluate_eigenstate_MM(sample_circuit(x, T=T, Q=Q, G=G, P=P),\
                                     hg, memory=M[i])
     return E
 
@@ -127,10 +129,10 @@ if __name__ == '__main__':
     ##############
     # Parameters #
     ##############
-    moleculars = ["H2", "H4", "LiH", "H2O"]
-    qubits = [4, 8, 12, 14]
+    moleculars = ["H2"]#, "H4", "LiH", "H2O"]
+    qubits = [4]#, 8, 12, 14]
     grouping_type = 'FG'   # 'GC': general commuting, 'QWC': qubit-wise commuting, 'FG': Fermion grouping
-    max_itr = 100
+    max_itr = 10
     gradient_method = 'parameter_shift'
    
      # Read initial parameters
