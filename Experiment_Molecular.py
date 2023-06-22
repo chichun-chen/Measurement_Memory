@@ -129,10 +129,10 @@ if __name__ == '__main__':
     ##############
     # Parameters #
     ##############
-    moleculars = ["H2"]#, "H4", "LiH", "H2O"]
-    qubits = [4]#, 8, 12, 14]
+    moleculars = ["H2", "H4", "LiH", "H2O"]
+    qubits = [4, 8, 12, 14]
     grouping_type = 'FG'   # 'GC': general commuting, 'QWC': qubit-wise commuting, 'FG': Fermion grouping
-    max_itr = 10
+    max_itr = 100
     gradient_method = 'parameter_shift'
    
      # Read initial parameters
